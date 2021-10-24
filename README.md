@@ -1,5 +1,5 @@
 # How to run
-Run **HeartBreaker.html** and it starts right away :)
+**[Play the game](https://nuyh99.github.io/Heart-Breaker/HeartBreaker/HeartBreaker.html)** and it starts right away :)
 
 
 # Description
