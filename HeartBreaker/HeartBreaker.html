@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Brick Breaker</title>
+		<style>
+			canvas {
+				background: white;
+				display: block;
+				margin: 0 auto;
+				box-shadow: 0px 5px 12px black;
+			}
+			
+			h3 {
+				font-family: papyrus;
+				text-align: center;
+				text-shadow: 0px 0px 5px red, 0px 0px 5px red, 0px 0px 5px red, 0px 0px 5px red, 0px 0px 5px red;
+				-webkit-text-stroke-width: 1px;
+				font-size: 40px;
+				color : white;
+				margin: 0px;
+				margin-top: 15px;
+				font-weight: 900;
+			}
+			
+			hr {
+				width: 550px;
+				border: 0px;
+    			height: 2px;
+				margin-bottom: 15px;
+				margin-top: 0px;
+    			background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+			}
+			
+			div {
+				text-align: center;
+				margin: 0;
+				margin-top: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<h3>Heart Breaker</h3>
+		<hr>
+		<canvas id="gameCanvas" width="500" height="650"></canvas>  <!--캔버스 생성-->
+		
+		<audio id="sound" src="Main.mp3" loop autoplay></audio> <!--BGM 재생 버튼 생성-->
+		<div>
+			<input type="image" width="80" height="80" onclick="play()" 
+			onmouseenter="zoomIn(event)" onmouseleave="zoomOut(event)" src="play.jpg">
+		</div>
+
+		<script>
+			var canvas = document.getElementById('gameCanvas');
+			var ctx = canvas.getContext('2d');
+			var ballRadius = 10; //공의 크기(반지름)
+			var x = canvas.width / 2; //공의 현재 위치(X)
+			var y = canvas.height - 100; //공의 현재 위치(Y)
+			var dx = 2; //공의 다음 X위치
+			var dy = -2; //공의 다음 Y위치
+			var paddleHeight = 10; //패들의 높이
+			var paddleWidth = 85; //패들의 넓이
+			var paddleX = (canvas.width - paddleWidth) / 2; //패들의 현재 위치
+			var rightPressed = false;
+			var leftPressed = false;
+			var brickRowCount = 9; //블록 행 수
+			var brickColumnCount = 9; //블록 열 수
+			var brickWidth = 45; //블록 넓이
+			var brickHeight = 35; //블록 높이
+			var brickPadding = 3; //블록 패딩
+			var brickOffsetTop = 35; //블록 시작 margin-top
+			var brickOffsetLeft = 40; //블록 시작 margin-left
+			var score = 0; //점수
+			var life = 2; //목숨
+
+			var bricks = []; //블록 배열 생성
+			for (var c = 0; c < brickColumnCount; c++) {
+				bricks[c] = [];
+				for (var r = 0; r < brickRowCount; r++) {
+					bricks[c][r] = { x: 0, y: 0, status: 1 };
+				}
+			}
+
+			document.addEventListener('keydown', keyDownHandler, false);
+			document.addEventListener('keyup', keyUpHandler, false);
+
+			function play(){ //BGM play 버튼에 사용될 play 함수
+				var sound=document.getElementById("sound");
+				sound.play();
+			}
+
+			function zoomIn(event){ //BGM play 버튼의 onmouseenter 이벤트
+				event.target.style.width="130px";
+				event.target.style.height="130px";
+				event.target.style.transition="all 0.5s";
+			}
+
+			function zoomOut(event){ //BGM play 버튼의 onmouseleave 이벤트
+				event.target.style.width="80px";
+				event.target.style.height="80px";
+				event.target.style.transition="all 0.5s";
+			}
+
+			function keyDownHandler(e) {
+				if (e.code == 'ArrowRight') {
+					rightPressed = true;
+				}
+				else if (e.code == 'ArrowLeft') {
+					leftPressed = true;
+				}
+			}
+
+			function keyUpHandler(e) {
+				if (e.code == 'ArrowRight') {
+					rightPressed = false;
+				}
+				else if (e.code == 'ArrowLeft') {
+					leftPressed = false;
+				}
+			}
+			
+			function detectCollision() { //충돌 조건 세팅
+				for (var c = 0; c < brickColumnCount; c++) {
+					for (var r = 0; r < brickRowCount; r++) {
+						var b = bricks[c][r];
+						if (b.status == 1) {
+							if(x+ballRadius > b.x && 			 //공의 오른쪽 부분 > 블록의 왼쪽 부분
+							   x-ballRadius < b.x+brickWidth &&  //공의 왼쪽 부분 < 블록의 오른쪽 부분
+							   y+ballRadius > b.y && 			 //공의 아래쪽 부분 > 블록의 위쪽 부분
+							   y-ballRadius < b.y+brickHeight) { //공의 위쪽 부분 < 블록의 아래쪽 부분
+								   if(x<b.x || x>b.x+brickWidth){ //공이 블록의 좌측 or 우측에 맞았을 때
+									   dx=-dx; //공의 x방향 반전
+									   b.status=0;
+									   score+=100;
+								   }
+								   else{ //공이 블록의 위측 or 아래측에 맞았을 때
+										dy=-dy; //공의 y방향 반전
+										b.status=0;
+										score+=100;
+								   }
+							}
+							if(score/100==brickColumnCount*brickRowCount){ //모든 벽돌의 상태가 0일 때 승리
+								alert("승리하셨습니다!!!!");
+                        		document.location.reload();
+							}
+						}
+					}
+				}
+			}
+
+			function drawScore() { //점수, 목숨 draw 함수
+    			ctx.font = "bold 20px Comic Sans MS";
+    			ctx.fillStyle = "white";
+				ctx.lineWidth = 3;
+				ctx.strokeStyle = "red";
+				ctx.strokeText("Score : "+score, 8, 630);
+    			ctx.fillText("Score : "+score, 8, 630);
+				ctx.strokeText("♥ x "+life, canvas.width-75, 630);
+    			ctx.fillText("♥ x "+life, canvas.width-75, 630);
+			}
+
+			function drawBall() { //공 draw 함수
+				ctx.beginPath();
+				ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+				ctx.fillStyle = 'red';
+				ctx.fill();
+				ctx.strokeStyle='black';
+				ctx.stroke();
+				ctx.closePath();
+			}
+
+			function drawPaddle() { //패들 draw 함수
+				ctx.beginPath();
+				ctx.rect(paddleX, canvas.height - paddleHeight-50, paddleWidth, paddleHeight);
+				ctx.fillStyle = 'black';
+				ctx.fill();
+				ctx.closePath();
+			}
+
+			function drawBricks() { //블록 draw 함수
+				for (var c = 0; c < brickColumnCount; c++) {
+					for (var r = 0; r < brickRowCount; r++) {
+						if (bricks[c][r].status == 1) { 
+							var brickX = r * (brickWidth + brickPadding) + brickOffsetLeft; //블록의 시작 X위치
+							var brickY = c * (brickHeight + brickPadding) + brickOffsetTop; //블록의 시작 Y위치
+							bricks[c][r].x = brickX;
+							bricks[c][r].y = brickY;
+							ctx.beginPath();
+							ctx.rect(brickX, brickY, brickWidth, brickHeight);
+							var heart=new Image();
+							heart.src="heart.jpg";
+							ctx.fillStyle = ctx.createPattern(heart, "no-repeat"); //이미지로 (no-repeat)패턴 적용
+							ctx.fill();
+							ctx.closePath();
+						}
+					}
+				}
+			}
+
+			function draw() { //애니메이션처럼 보이도록 반복 draw
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				drawBricks();
+				drawBall();
+				drawPaddle();
+				drawScore();
+				detectCollision();
+
+				if (x + ballRadius > canvas.width || x - ballRadius < 0) { //좌, 우측 벽에 볼이 닿았을 때
+					dx = -dx;
+				}
+				
+				if (y - ballRadius < 0) { //위쪽 벽에 볼이 닿았을 때
+					dy = -dy;
+				}
+
+				else if (y + ballRadius > canvas.height - paddleHeight - 45) { //공의 아래쪽 > 패들의 윗부분
+					if (x > paddleX && x < paddleX + paddleWidth) { //공의 x좌표가 패들의 x범위 안에 있을 때
+						dy = -dy; //y방향 반전
+						if(dx<5){ //공의 속도 빠르게
+							dy=dy*1.2;
+							dx=dx*1.2;
+						}
+					}
+					else { //패들에 안 맞았을 때
+						life--; //목숨 -1
+						if(life==0) { //목숨==0이면 게임 over
+    						alert("ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ죽었네요\nScore : "+score+"\n확인 버튼을 누르면 다시 시작합니다!");
+    						document.location.reload();
+    						clearInterval(interval);
+						}
+						else { //목숨>0이면 게임 재개
+    						x = canvas.width/2;
+ 							y = canvas.height-70;
+    						dx = 2;
+   							dy = -2;
+    						paddleX = (canvas.width-paddleWidth)/2;
+						}	
+					}
+				}
+
+				if (rightPressed && paddleX < canvas.width - paddleWidth) {
+					paddleX += 8; //패들의 이동 속도
+				} 
+				else if (leftPressed && paddleX > 0) {
+					paddleX -= 8;
+				}
+
+				x += dx;
+				y += dy;
+				requestAnimationFrame(draw); //애니메이션처럼 보이도록 draw 함수 반복
+			}
+
+			draw();
+		</script>
+	</body>
+</html>
